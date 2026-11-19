@@ -31,7 +31,7 @@ def current_year():
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "lundi-primary-dev-secret-change-me")
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lundi.db")
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lundi_v2.db")
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXT = {".pdf", ".jpg", ".jpeg", ".png"}
