@@ -534,6 +534,57 @@ def teacher_assignments():
 @app.route("/uploads/<fn>")
 def uploaded_file(fn):
     return send_from_directory(UPLOAD_FOLDER, fn)
+
+@app.route('/search')
+def global_search():
+    if session.get("role") not in ("teacher", "admin", "bursar", "parent"):
+        return redirect("/login")
+    q = request.args.get('q', '').strip()
+    role = session.get("role", "")
+    username = session.get("username", "")
+    students, assigns, payments, users_list = [], [], [], []
+    if q:
+        c = get_db()
+        like_q = f"%{q}%"
+        try:
+            students = c.execute("SELECT * FROM students WHERE name LIKE ? OR class LIKE ? OR parent_name LIKE ?", (like_q, like_q, like_q)).fetchall()
+        except: students = []
+        try:
+            assigns = c.execute("SELECT * FROM assignments WHERE title LIKE ? OR subject LIKE ?", (like_q, like_q)).fetchall()
+        except: assigns = []
+        if role in ['admin', 'bursar']:
+            try:
+                payments = c.execute("SELECT * FROM payments WHERE student_name LIKE ?", (like_q,)).fetchall()
+            except:
+                try:
+                    payments = c.execute("SELECT * FROM fees WHERE student_name LIKE ?", (like_q,)).fetchall()
+                except: payments = []
+        if role == 'admin':
+            try:
+                users_list = c.execute("SELECT * FROM users WHERE username LIKE ?", (like_q,)).fetchall()
+            except: users_list = []
+        c.close()
+    html = f"""
+    <h2>Search Results for "{q}"</h2>
+    <form action="/search" method="GET"><input type="text" name="q" value="{q}" placeholder="Search..."> <button>Search</button></form>
+    <a href="javascript:history.back()">Back</a>
+    <h3>Students ({len(students)})</h3>
+    """
+    for s in students:
+        html += f"<div><b>{s['name']}</b> - {s['class']} - {s['parent_name']}</div>"
+    html += f"<h3>Assignments ({len(assigns)})</h3>"
+    for a in assigns:
+        html += f"<div><b>{a['title']}</b> - {a['subject']}</div>"
+    if role in ['admin','bursar']:
+        html += f"<h3>Payments ({len(payments)})</h3>"
+        for p in payments:
+            html += f"<div>{dict(p)}</div>"
+    if role == 'admin':
+        html += f"<h3>Users ({len(users_list)})</h3>"
+        for u in users_list:
+            html += f"<div><b>{u['username']}</b> - {u['role']}</div>"
+    return html
+
 # === PART 4: RUN ===
 init_db()
 if __name__ == "__main__":
