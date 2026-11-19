@@ -526,7 +526,7 @@ def teacher_assignments():
         return redirect(url_for("teacher_assignments"))
     c = get_db()
     assigns = c.execute("SELECT * FROM assignments ORDER BY id DESC").fetchall()
-    studs = c.execute("SELECT s.*, (SELECT email FROM users WHERE id=s.parent_id) as parent_email2 FROM students s ORDER BY full_name").fetchall()
+    studs = o.execute("SELECT s.* FROM students s").fetchall()
     # Fix parent_email: pull from students table
     c.close()
     return render_template("assignments.html", assigns=assigns, students=studs)
