@@ -585,6 +585,68 @@ def global_search():
             html += f"<div><b>{u['username']}</b> - {u['role']}</div>"
     return html
 
+    # === UNIVERSAL EDIT - Works for ALL Admin tables ===
+ALLOWED_EDIT_TABLES = ['students','teachers','assignments','users','fees','payments','parents','classes','subjects']
+
+@app.route('/edit/<table>/<int:record_id>', methods=['GET','POST'])
+def universal_edit(table, record_id):
+    if 'user' not in session or session.get('role') != 'admin':
+        return redirect('/login')
+    if table not in ALLOWED_EDIT_TABLES:
+        return "Table not allowed"
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(f"PRAGMA table_info({table})")
+    cols = [row[1] for row in c.fetchall()]
+    c.execute(f"SELECT * FROM {table} WHERE id=?", (record_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return f"{table} not found"
+    data = dict(zip(cols, row))
+
+    if request.method == 'POST':
+        sets = []
+        vals = []
+        for col in cols:
+            if col == 'id':
+                continue
+            v = request.form.get(col, '')
+            if col in ('parent_phone','phone','teacher_phone') and v.startswith('0'):
+                v = '263' + v[1:]
+            if col in ('parent_phone','phone','teacher_phone'):
+                v = v.replace('+','').replace(' ','')
+            sets.append(f"{col}=?")
+            vals.append(v)
+        vals.append(record_id)
+        c.execute(f"UPDATE {table} SET {', '.join(sets)} WHERE id=?", vals)
+        conn.commit()
+        conn.close()
+        return redirect('/dashboard')
+
+    conn.close()
+    form_html = ""
+    for col in cols:
+        if col == 'id':
+            continue
+        label = col.replace('_',' ').title()
+        val = data.get(col) or ''
+        # Make big text boxes for long text
+        if col in ('description','message','content','notes','address'):
+            form_html += f"{label}:<br><textarea name='{col}' style='width:100%;padding:8px'>{val}</textarea><br><br>"
+        else:
+            form_html += f"{label}: <input name='{col}' value='{val}' style='width:100%;padding:8px;margin:5px 0'><br>"
+
+    return f"""
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif">
+    <h2>Edit {table.title()} - ID {record_id}</h2>
+    <form method="POST">{form_html}
+    <button type="submit" style="padding:12px 25px;background:#16a34a;color:white;border:none;border-radius:8px;font-size:16px">💾 Save ALL Changes</button>
+    </form>
+    <br><a href="/admin/{table}">← Back to {table.title()}</a>
+    </div>
+    """
+
 # === PART 4: RUN ===
 init_db()
 if __name__ == "__main__":
