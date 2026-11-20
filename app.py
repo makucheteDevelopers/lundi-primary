@@ -213,7 +213,7 @@ def init_db():
     c.execute("CREATE TABLE IF NOT EXISTS grades (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, teacher_id INTEGER, subject TEXT, term TEXT, academic_year INTEGER, score REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, day TEXT, status TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT, audience TEXT, created_at TEXT)")
-    for col, typ in [("age","TEXT"),("email","TEXT"),("subject","TEXT"),("address","TEXT"),("next_of_kin","TEXT"),("class_name","TEXT"),("admission_no","TEXT"),("parent_username","TEXT")]:
+    for col, typ in [("age","TEXT"),("email","TEXT"),("subject","TEXT"),("subjects","TEXT"),("address","TEXT"),("next_of_kin","TEXT"),("class_name","TEXT"),("admission_no","TEXT"),("parent_username","TEXT")]:
         try: c.execute(f"ALTER TABLE students ADD COLUMN {col} {typ}")
         except: pass
         try: c.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
