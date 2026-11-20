@@ -204,11 +204,7 @@ def init_db():
     migrate_v2()
     c = get_db()
         # --- ADD MISSING STUDENT FIELDS ---
-    for col, typ in [("age","TEXT"),("email","TEXT"),("subjects","TEXT"),("address","TEXT"),("next_of_kin","TEXT")]:
-        try: c.execute(f"ALTER TABLE students ADD COLUMN {col} {typ}")
-        except: pass
-        try: c.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
-        except: pass
+   
     c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, full_name TEXT, role TEXT, phone TEXT, must_change_password INTEGER DEFAULT 0)")
     c.execute("CREATE TABLE IF NOT EXISTS teachers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, full_name TEXT, subject TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, parent_id INTEGER, full_name TEXT, admission_no TEXT, class_name TEXT, phone TEXT, address TEXT, town TEXT, parent_phone TEXT, parent_email TEXT, nok_name TEXT, nok_phone TEXT, nok_relation TEXT, nok_address TEXT, school_level TEXT, grade_applying TEXT, prev_school TEXT, birth_cert_no TEXT, student_code TEXT)")
@@ -217,7 +213,13 @@ def init_db():
     c.execute("CREATE TABLE IF NOT EXISTS grades (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, teacher_id INTEGER, subject TEXT, term TEXT, academic_year INTEGER, score REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, day TEXT, status TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT, audience TEXT, created_at TEXT)")
+    for col, typ in [("age","TEXT"),("email","TEXT"),("subject","TEXT"),("address","TEXT"),("next_of_kin","TEXT"),("class_name","TEXT"),("admission_no","TEXT"),("parent_username","TEXT")]:
+        try: c.execute(f"ALTER TABLE students ADD COLUMN {col} {typ}")
+        except: pass
+        try: c.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
+        except: pass
     if not c.execute("SELECT 1 FROM users WHERE username='admin'").fetchone():
+      
         c.execute("INSERT INTO users(username,password_hash,full_name,role) VALUES(?,?,?,?)", ("admin", generate_password_hash("admin123"), "Administrator", "admin"))
         c.execute("INSERT INTO users(username,password_hash,full_name,role) VALUES(?,?,?,?)", ("teacher", generate_password_hash("teacher123"), "Mr. Teacher", "teacher"))
         c.execute("INSERT INTO users(username,password_hash,full_name,role) VALUES(?,?,?,?)", ("bursar", generate_password_hash("bursar123"), "Mrs. Bursar", "bursar"))
