@@ -191,6 +191,12 @@ def migrate_v2():
 def init_db():
     migrate_v2()
     c = get_db()
+        # --- ADD MISSING STUDENT FIELDS ---
+    for col, typ in [("age","TEXT"),("email","TEXT"),("subjects","TEXT"),("address","TEXT"),("next_of_kin","TEXT")]:
+        try: c.execute(f"ALTER TABLE students ADD COLUMN {col} {typ}")
+        except: pass
+        try: c.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
+        except: pass
     c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, full_name TEXT, role TEXT, phone TEXT, must_change_password INTEGER DEFAULT 0)")
     c.execute("CREATE TABLE IF NOT EXISTS teachers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, full_name TEXT, subject TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, parent_id INTEGER, full_name TEXT, admission_no TEXT, class_name TEXT, phone TEXT, address TEXT, town TEXT, parent_phone TEXT, parent_email TEXT, nok_name TEXT, nok_phone TEXT, nok_relation TEXT, nok_address TEXT, school_level TEXT, grade_applying TEXT, prev_school TEXT, birth_cert_no TEXT, student_code TEXT)")
@@ -338,7 +344,19 @@ def admin_add_user():
     f = request.form
     c = get_db()
     try:
-        c.execute("INSERT INTO users(username,password_hash,full_name,role,phone) VALUES(?,?,?,?,?)", (f.get("username"), generate_password_hash(f.get("password")), f.get("full_name"), f.get("role"), f.get("phone", "")))
+        c.execute("INSERT INTO users(username,password_hash,full_name,role,phone,email) VALUES(?,?,?,?,?,?)",
+                  (f.get("username"), generate_password_hash(f.get("password")), f.get("full_name"), f.get("role"), f.get("phone"), f.get("email")))
+        new_user_id = c.execute("SELECT id FROM users WHERE username=?", (f.get("username"),)).fetchone()["id"]
+        if f.get("role") == "student":
+            parent_id = 0
+            if f.get("parent_username"):
+                row = c.execute("SELECT id FROM users WHERE username=?", (f.get("parent_username"),)).fetchone()
+                if row: parent_id = row["id"]
+            c.execute("INSERT INTO students(user_id,parent_id,full_name,admission_no,class_name,phone,email,age,subjects,address,next_of_kin) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                      (new_user_id, parent_id, f.get("full_name"), f.get("admission_no"), f.get("class_name"), f.get("phone"), f.get("email"), f.get("age"), f.get("subjects"), f.get("address"), f.get("next_of_kin")))
+        if f.get("role") == "teacher":
+            c.execute("INSERT INTO teachers(user_id,full_name,subject) VALUES(?,?,?)",
+                      (new_user_id, f.get("full_name"), f.get("subjects")))
         c.commit()
         flash("User created!", "success")
     except Exception as e:
